@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Current Papyrus Script",
+            "type": "process",
+            "command": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "args": [
+                "${fileBasename}",
+                "-i=C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Data\\Source\\Scripts;${workspaceFolder}\\src\\papyrus",
+                "-o=C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Data\\Scripts",
+                "-f=C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Data\\Source\\Scripts\\TESV_Papyrus_Flags.flg"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}\\src\\papyrus"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+        "label": "Deploy SoundHealing Assets",
+        "type": "shell",
+        "command": "Copy-Item",
+        "args": [
+            "-Path",
+            "\"${workspaceFolder}\\assets\\*\"",
+            "-Destination",
+            "\"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Data\"",
+            "-Recurse",
+            "-Force"
+        ],
+        "options": {
+            "shell": {
+                "executable": "powershell.exe",
+                "args": ["-NoProfile", "-Command"]
+            }
+        },
+        "problemMatcher": []
+    }
+    ]
+}

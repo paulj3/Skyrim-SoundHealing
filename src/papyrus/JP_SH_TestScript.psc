@@ -1,0 +1,1 @@
+Scriptname JP_SH_TestScript extends Quest
