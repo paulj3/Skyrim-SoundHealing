@@ -1,0 +1,10 @@
+# Compiled Papyrus
+*.pex
+
+# Temporary/backup files
+*.tmp
+*.bak
+
+# Windows
+Thumbs.db
+Desktop.ini
