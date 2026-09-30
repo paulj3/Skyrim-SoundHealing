@@ -1,8 +1,8 @@
 FormKey: 003322:SoundHealing.esp
-EditorID: JP_SH_BowlPrototype2
+EditorID: JP_SH_BowlPrototype
 Name:
   TargetLanguage: English
-  Value: Prototype Singing Bowl
+  Value: Prototype Singing Bowl - Strike
 Model:
   File: Weapons\Forsworn\ForswornStaff.nif
   Data: 0x020000000000000000000000
