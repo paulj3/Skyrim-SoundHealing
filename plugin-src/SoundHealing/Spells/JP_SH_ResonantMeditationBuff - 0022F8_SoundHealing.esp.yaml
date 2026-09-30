@@ -1,0 +1,26 @@
+FormKey: 0022F8:SoundHealing.esp
+EditorID: JP_SH_ResonantMeditationBuff
+Name:
+  TargetLanguage: English
+  Value: Resonant Meditation
+EquipmentType: 013F44:Skyrim.esm
+Description:
+  TargetLanguage: English
+  Value: ''
+BaseCost: 2653
+Flags:
+- ManualCostCalc
+CastType: FireAndForget
+Effects:
+- BaseEffect: 0012C7:SoundHealing.esp
+  Data:
+    Magnitude: 100
+    Duration: 30
+- BaseEffect: 0012C9:SoundHealing.esp
+  Data:
+    Magnitude: 100
+    Duration: 30
+- BaseEffect: 0012CB:SoundHealing.esp
+  Data:
+    Magnitude: 100
+    Duration: 30

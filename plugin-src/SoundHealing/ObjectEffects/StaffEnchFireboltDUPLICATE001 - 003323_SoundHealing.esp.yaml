@@ -1,0 +1,15 @@
+FormKey: 003323:SoundHealing.esp
+EditorID: StaffEnchFireboltDUPLICATE001
+Name:
+  TargetLanguage: English
+  Value: Firebolt
+EnchantmentCost: 41
+CastType: FireAndForget
+EnchantmentAmount: 41
+TargetType: Aimed
+EnchantType: StaffEnchantment
+ChargeTime: 0.5
+Effects:
+- BaseEffect: 012F03:Skyrim.esm
+  Data:
+    Magnitude: 25

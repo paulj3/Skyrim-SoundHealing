@@ -1,0 +1,20 @@
+FormKey: 0012C7:SoundHealing.esp
+EditorID: JP_SH_ResonantMeditationHealth
+Name:
+  TargetLanguage: English
+  Value: Resonant Meditation
+Flags:
+- Recover
+- PowerAffectsMagnitude
+- Painless
+BaseCost: 5
+SpellmakingCastingTime: 0.5
+Archetype:
+  MutagenObjectType: MagicEffectArchetype
+  ActorValue: HealRateMult
+CastType: FireAndForget
+DualCastScale: 1
+Sounds: []
+Description:
+  TargetLanguage: English
+  Value: ''

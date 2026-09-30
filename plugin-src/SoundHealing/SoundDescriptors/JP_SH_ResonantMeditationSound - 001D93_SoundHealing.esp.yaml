@@ -1,0 +1,8 @@
+FormKey: 001D93:SoundHealing.esp
+EditorID: JP_SH_ResonantMeditationSound
+Type: Standard
+SoundFiles:
+- data\Sound\FX\SoundHealing\ResonantMeditation\JP_SH_ResonantMeditation.wav
+OutputModel: 0B5183:Skyrim.esm
+LoopAndRumble: {}
+Priority: 128

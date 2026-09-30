@@ -1,0 +1,12 @@
+FormKey: 000D62:SoundHealing.esp
+EditorID: IngotIronDUPLICATE001
+Name:
+  TargetLanguage: English
+  Value: Iron Ingot
+Model:
+  File: Dungeons\Mines\Ore\IngotIron01.nif
+  Data: 0x020000000000000000000000
+Keywords:
+- 0914EC:Skyrim.esm
+Value: 7
+Weight: 1

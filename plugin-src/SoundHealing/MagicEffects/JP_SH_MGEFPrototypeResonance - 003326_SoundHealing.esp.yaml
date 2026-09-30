@@ -1,0 +1,38 @@
+FormKey: 003326:SoundHealing.esp
+EditorID: JP_SH_MGEFPrototypeResonance
+Name:
+  TargetLanguage: English
+  Value: Prototype Resonance
+MenuDisplayObject: 0435A5:Skyrim.esm
+Flags:
+- Hostile
+- Detrimental
+- NoArea
+- FXPersist
+- NoRecast
+- PowerAffectsMagnitude
+- NoDeathDispel
+BaseCost: 1.2
+MagicSkill: Destruction
+CastingLight: 0140EC:Skyrim.esm
+TaperWeight: 0.3
+HitShader: 01B212:Skyrim.esm
+MinimumSkillLevel: 25
+SpellmakingCastingTime: 0.5
+TaperCurve: 2
+TaperDuration: 1
+Archetype:
+  MutagenObjectType: MagicEffectArchetype
+  ActorValue: Health
+Projectile: 00388A:SoundHealing.esp
+CastType: FireAndForget
+TargetType: Aimed
+CastingArt: 01B211:Skyrim.esm
+SkillUsageMultiplier: 1
+DualCastScale: 1
+Sounds:
+- Type: Release
+  Sound: 001D93:SoundHealing.esp
+Description:
+  TargetLanguage: English
+  Value: A blast of fire that does <mag> points of damage. Targets on fire take extra damage.

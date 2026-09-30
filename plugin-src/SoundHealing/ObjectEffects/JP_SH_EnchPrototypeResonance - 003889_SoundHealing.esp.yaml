@@ -1,0 +1,17 @@
+FormKey: 003889:SoundHealing.esp
+VersionControl: 13627
+EditorID: JP_SH_EnchPrototypeResonance
+Name:
+  TargetLanguage: English
+  Value: Prototype Resonance
+EnchantmentCost: 3
+CastType: FireAndForget
+EnchantmentAmount: 3
+TargetType: Aimed
+EnchantType: StaffEnchantment
+ChargeTime: 0.5
+Effects:
+- BaseEffect: 003326:SoundHealing.esp
+  Data:
+    Magnitude: 25
+    Duration: 1

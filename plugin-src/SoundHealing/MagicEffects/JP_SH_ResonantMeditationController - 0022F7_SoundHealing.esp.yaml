@@ -1,0 +1,29 @@
+FormKey: 0022F7:SoundHealing.esp
+EditorID: JP_SH_ResonantMeditationController
+VirtualMachineAdapter:
+  Scripts:
+  - Name: JP_SH_ResonantMeditationScript
+    Properties:
+    - MutagenObjectType: ScriptObjectProperty
+      Name: JP_SH_ResonantMeditationSound
+      Object: 001D94:SoundHealing.esp
+    - MutagenObjectType: ScriptObjectProperty
+      Name: ResonantMeditationBuff
+      Object: 0022F8:SoundHealing.esp
+Name:
+  TargetLanguage: English
+  Value: Resonant Meditation Controller
+Flags:
+- NoMagnitude
+- HideInUI
+- Painless
+Archetype:
+  MutagenObjectType: MagicEffectArchetype
+  Type: Script
+CastType: FireAndForget
+DualCastScale: 1
+CastingSoundLevel: Normal
+Sounds: []
+Description:
+  TargetLanguage: English
+  Value: ''
