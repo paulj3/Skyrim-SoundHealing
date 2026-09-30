@@ -3,15 +3,15 @@ VersionControl: 13627
 EditorID: JP_SH_EnchPrototypeSing
 Name:
   TargetLanguage: English
-  Value: Prototype Resonance - Sing
-EnchantmentCost: 3
+  Value: Prototype Restorative Resonance
+EnchantmentCost: 0
 CastType: Concentration
 EnchantmentAmount: 3
-TargetType: Aimed
+TargetType: Self
 EnchantType: StaffEnchantment
 ChargeTime: 0.5
 Effects:
 - BaseEffect: 00388D:SoundHealing.esp
   Data:
-    Magnitude: 25
+    Magnitude: 10
     Duration: 1

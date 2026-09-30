@@ -1,29 +1,29 @@
 FormKey: 00388D:SoundHealing.esp
 EditorID: JP_SH_MGEFPrototypeSing
+VirtualMachineAdapter:
+  Scripts:
+  - Name: JP_SH_SingMagickaDrainScript
 Name:
   TargetLanguage: English
-  Value: Prototype Resonance - Sing
+  Value: Restorative Resonance
 MenuDisplayObject: 0435A5:Skyrim.esm
 Flags:
-- Hostile
-- Detrimental
 - NoArea
 - FXPersist
 - PowerAffectsMagnitude
 - NoDeathDispel
-BaseCost: 1.2
-MagicSkill: Destruction
+BaseCost: 0
+MagicSkill: Restoration
 TaperWeight: 0.3
-MinimumSkillLevel: 25
+MinimumSkillLevel: 0
 SpellmakingCastingTime: 0.5
 TaperCurve: 2
 TaperDuration: 1
 Archetype:
   MutagenObjectType: MagicEffectArchetype
   ActorValue: Health
-Projectile: 00388E:SoundHealing.esp
 CastType: Concentration
-TargetType: Aimed
+TargetType: Self
 SkillUsageMultiplier: 1
 DualCastScale: 1
 Sounds:
@@ -31,4 +31,4 @@ Sounds:
   Sound: 00388F:SoundHealing.esp
 Description:
   TargetLanguage: English
-  Value: A sustained resonance that affects the target while the bowl is sung.
+  Value: Restores <mag> points of Health while the bowl is sung.
