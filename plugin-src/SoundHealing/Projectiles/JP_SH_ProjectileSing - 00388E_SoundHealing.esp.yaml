@@ -1,0 +1,15 @@
+FormKey: 00388E:SoundHealing.esp
+EditorID: JP_SH_ProjectileSing
+FormVersion: 40
+ObjectBounds:
+  First: -30, -191, -25
+  Second: 31, 40, 24
+Type: Missile
+Speed: 2500
+Range: 10000
+FadeDuration: 0.5
+ImpactForce: 1.5
+CollisionRadius: 10
+RelaunchInterval: 0.25
+MuzzleFlashModel: ''
+SoundLevel: 1
