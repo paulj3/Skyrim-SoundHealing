@@ -27,8 +27,8 @@ TargetType: Aimed
 SkillUsageMultiplier: 1
 DualCastScale: 1
 Sounds:
-- Type: Release
-  Sound: 001D93:SoundHealing.esp
+- Type: ConcentrationCastLoop
+  Sound: 00388F:SoundHealing.esp
 Description:
   TargetLanguage: English
   Value: A sustained resonance that affects the target while the bowl is sung.
