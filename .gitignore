@@ -1,0 +1,24 @@
+# Compiled Papyrus
+*.pex
+
+# Temporary/backup files
+*.tmp
+*.bak
+
+# Windows
+Thumbs.db
+Desktop.ini
+build/
+scratch/
+
+# Compiled Papyrus
+*.pex
+
+# Common Blender backups
+*.blend1
+*.blend2
+
+# Extracted vanilla reference assets
+asset-src/reference/
+
+# Generated build output

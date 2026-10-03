@@ -4,7 +4,7 @@ Name:
   TargetLanguage: English
   Value: Prototype Singing Bowl - Sing
 Model:
-  File: Weapons\Forsworn\ForswornStaff.nif
+  File: SoundHealing\Weapons\Bowl\JP_SH_BowlPrototype.nif
   Data: 0x020000000000000000000000
 ObjectEffect: 00388C:SoundHealing.esp
 EnchantmentAmount: 65535
@@ -43,4 +43,3 @@ Critical:
   - OnDeath
   Unused2: 0x000000
 DetectionSoundLevel: Normal
-Template: 0CC826:Skyrim.esm
