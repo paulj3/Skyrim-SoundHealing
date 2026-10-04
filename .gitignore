@@ -12,7 +12,7 @@ build/
 scratch/
 
 # Compiled Papyrus
-*.pex
+build/*/*.pex
 
 # Common Blender backups
 *.blend1
