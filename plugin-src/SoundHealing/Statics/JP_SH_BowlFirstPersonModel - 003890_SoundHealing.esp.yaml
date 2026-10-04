@@ -5,7 +5,7 @@ ObjectBounds:
   First: -19, -53, -4
   Second: 8, 67, 4
 Model:
-  File: SoundHealing\Weapons\Bowl\JP_SH_BowlPrototype.nif
+  File: SoundHealing\Weapons\Bowl\JP_SH_BowlEquipped.nif
   Data: 0xFF94AC1F646473003765189847B86FF36464730037651898
 MaxAngle: 90
 Unused: '[]'
