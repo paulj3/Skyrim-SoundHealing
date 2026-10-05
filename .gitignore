@@ -1,24 +1,21 @@
+# Generated build output
+build/
+
 # Compiled Papyrus
 *.pex
 
-# Temporary/backup files
+# Temporary / scratch
+scratch/
 *.tmp
 *.bak
+
+# Blender backups
+*.blend1
+*.blend2
+
+# Extracted vanilla Skyrim reference assets
+asset-src/reference/
 
 # Windows
 Thumbs.db
 Desktop.ini
-build/
-scratch/
-
-# Compiled Papyrus
-build/*/*.pex
-
-# Common Blender backups
-*.blend1
-*.blend2
-
-# Extracted vanilla reference assets
-asset-src/reference/
-
-# Generated build output
