@@ -1,224 +1,154 @@
-# SoundHealing — Development Tools and Setup (Windows)
+# SoundHealing — Verified Windows Development Setup
 
-**Status:** Reconstructed from the project's established development workflow; validate local paths and scripts against the checkout.  
-**Primary development OS:** Windows  
-**Project:** Skyrim Special Edition `SoundHealing` plugin (`SoundHealing.esp`)
+**Audited source:** [Skyrim-SoundHealing](https://github.com/paulj3/Skyrim-SoundHealing), main commit `a9ebf583b6c6c56249d15b914b35ed524eee3eb5`, 2026-10-11.
 
-## 1. Tested/observed environment versus portable requirements
+**Verification level:** The actual committed build script, VS Code task, .gitignore, Papyrus files, serialized records and assets were inspected. A Windows build, xEdit validation and in-game tests **were not run** in this review. Treat environment-specific versions as unverified unless confirmed on your computer.
 
-The following versions were used or discussed during development, not asserted as universally required for every contributor:
+## 1. What must be installed
 
-| Component | Observed version or choice | Why it is used |
-|---|---|---|
-| Skyrim Special Edition | Game/runtime reported as **1.7.104.0** | Runtime and assets for manual playtesting; **verify** exact executable/version on each machine |
-| Creation Kit | **1.7.99** (reported) | Editing and inspecting game records; debugging active plugin |
-| Spriggit | **0.41.0** | Serialize/deserialize ESP records as Git-friendly YAML |
-| .NET SDK | **10.0.401 x64** (reported) | Installed as part of local Spriggit tooling environment; actual required runtime must be checked with Spriggit release |
-| SSEEdit / xEdit | **4.1.5f** | Inspect FormKeys, references, masters and winning overrides |
-| VS Code | + Papyrus Tools extension | Papyrus authoring, tasks, navigation |
-| Papyrus compiler | From compatible Creation Kit toolchain | Compile `.psc` to `.pex` |
-| Vortex | Used locally | Deployment and mod-manager testing; not required if using another safe manager |
-| NifSkope / Blender | Used or planned for mesh/asset work | Inspect NIF references, build meshes and source assets |
-| Git for Windows + SSH | In use | Source control and GitHub backups |
-| PowerShell | Windows PowerShell / PowerShell | Build, inspection, and validation commands |
+| Tool | Exact repository requirement |
+|---|---|
+| Windows PowerShell | `.vscode/tasks.json` invokes `powershell.exe` |
+| Skyrim Special Edition | Existing script points to Steam install at `C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition` |
+| PapyrusCompiler.exe | Must exist at `<Skyrim root>\Papyrus Compiler\PapyrusCompiler.exe` |
+| Vanilla script sources | `<Skyrim root>\Data\Source\Scripts`, with `TESV_Papyrus_Flags.flg` |
+| Spriggit CLI 0.41.0 | Must exist locally at `tools\Spriggit-0.41.0\Spriggit.CLI.exe` |
+| VS Code | Optional editor; default task `Build SoundHealing` is committed |
+| xEdit / Creation Kit | Recommended for record inspection; neither is invoked by the script |
+| Blender / NifSkope | Asset authoring and mesh inspection; not build-time dependencies |
+| Git | Source control; not part of the build |
 
-**Version note:** Double-check the Skyrim runtime number before posting public compatibility guidance. Some project notes report versions that may describe a local installation or component, not a supported public release target. Do not silently modify runtime or Creation Kit versions to match this table.
+Spriggit YAML metadata explicitly declares `Spriggit.Yaml.Skyrim`, version `0.41.0`, `SkyrimSE`, and `SoundHealing.esp`. Earlier reported local versions (Skyrim 1.7.104.0, Creation Kit 1.7.99, xEdit 4.1.5f, .NET SDK 10.0.401) are **historical notes, not verified minimum requirements**. Check the Spriggit release's actual .NET runtime requirements.
 
-## 2. Obtain the source and verify Git
-
-In PowerShell:
+## 2. Clone and verify the project
 
 ```powershell
-ssh -T git@github.com
 git clone git@github.com:paulj3/Skyrim-SoundHealing.git
 cd Skyrim-SoundHealing
 git status
-git remote -v
 ```
 
-The remote previously appeared as HTTPS during a rejected push; either HTTPS or SSH can be valid, but SSH is recommended if the Windows machine has already been configured with a key. A GitHub clone will only work after the repository has been pushed successfully and you have access.
-
-> **Repository hygiene:** Never commit the downloaded Spriggit executable, Skyrim/Data assets extracted from the game, proprietary Bethesda files, transient `.pex` outputs or credentials. An earlier upload was rejected because `tools/Spriggit-0.41.0/Spriggit.CLI.exe` was ~171 MB. `.gitignore` alone does not remove earlier commits containing it; see GitHub history-cleanup notes before the initial push.
-
-## 3. Install and configure game editing tools
-
-1. Install a legitimate copy of Skyrim Special Edition; confirm its install directory. The familiar Steam default is `C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition\`, but **do not hardcode** this in shared scripts.
-2. Install a compatible Creation Kit for the installed game and verify it starts.
-3. Install Vortex (or your chosen mod manager). Keep the working source repository separate from the installed mod. Be mindful of deployment/purge operations; the Vortex **Purge Mods** command can change what appears in Skyrim's `Data` folder.
-4. Install SSEEdit/xEdit and inspect `SoundHealing.esp` after every significant record change.
-5. Install VS Code and a Papyrus language extension (the earlier workflow used **Papyrus Tools**). Point its compiler settings to the local compiler and the correct base-game script sources.
-6. Install an appropriate NIF inspector/editor (NifSkope) and Blender for custom meshes, where applicable. Do not assume a Blender export is directly game-ready; check NIF conversion, shader paths, and NiTriShape/NIF compatibility.
-
-### Creation Kit configuration
-
-The prior setup resolved Creation Kit master-loading trouble using a setting equivalent to:
-
-```ini
-[General]
-bAllowMultipleMasterLoads=1
-```
-
-Place/configure this only in the correct Creation Kit INI for your installation and version; keep a local backup of configuration first. Use Creation Kit's master selection intentionally. Confirm the plugin loads with its actual masters; do not infer a master list from examples.
-
-### Optional quality-of-life tools
-
-Creation Kit UI fixes, xEdit helpers, and Spriggit support scripts are optional. Capture their exact names and versions in a local contributor note if they become prerequisites. Do not treat optional developer modifications as player-facing dependencies.
-
-## 4. Install Spriggit 0.41.0 locally (do not commit it)
-
-The previously used executable was under:
+GitHub does not contain the Spriggit executable, Skyrim, compiler, or vanilla game sources. Download the appropriate Spriggit 0.41.0 CLI release from the official upstream project and extract to:
 
 ```text
-tools/Spriggit-0.41.0/Spriggit.CLI.exe
+<repo>\tools\Spriggit-0.41.0\Spriggit.CLI.exe
 ```
 
-Download the matching release from the official Spriggit project/release distribution; verify version and contents. Keep this folder in `.gitignore` or configure a machine-local external path. The repository stores **YAML source**, not the installed tool.
-
-Validate the CLI rather than guessing command-line flags:
+Then check:
 
 ```powershell
+Test-Path .\tools\Spriggit-0.41.0\Spriggit.CLI.exe
 & .\tools\Spriggit-0.41.0\Spriggit.CLI.exe --help
 ```
 
-Spriggit's data flow is:
+`tools/Spriggit-0.41.0/` is excluded from Git because the third-party executable exceeded GitHub's 100 MB limit.
 
-```text
-plugin-src/SoundHealing/ (serialized YAML + metadata)
-    -- Spriggit deserialize -->
-build/SoundHealing.esp
-```
+## 3. Verify the hardcoded Skyrim paths
 
-The existing build script is the authoritative source for exact switches, options and arguments for this version. Do not copy generic Spriggit commands from tutorials without confirming `--help` and the script.
-
-## 5. Papyrus authoring and compilation
-
-Expected source/build roles from the earlier workflow:
-
-```text
-src/papyrus/              editable .psc scripts
-build/...                 generated .pex scripts (ignored by Git)
-```
-
-The compiler must have access to the appropriate `.psc` source imports from Skyrim and any explicitly declared dependencies. Open the workspace in VS Code, confirm compiler settings in the project's `.vscode/` files, and run the project's configured compile task. A successful compile should produce `.pex` files and report no unresolved script types/properties.
-
-**Do not edit `.pex` output**: change `.psc`, recompile, and redeploy. Avoid putting generated scripts under version control unless a deliberate release-packaging exception is approved.
-
-## 6. Build the mod
-
-Previously established pipeline:
-
-```text
-YAML source  -> Spriggit -> build/SoundHealing.esp
-Papyrus PSC  -> compiler -> compiled PEX
-Source assets -> copy/deploy -> Skyrim/Data-relative paths
-```
-
-First find the actual build entry point in your checkout:
+The committed `scripts/build.ps1` defines:
 
 ```powershell
-Get-ChildItem -Path . -Filter build.ps1 -Recurse | Select-Object FullName
-Get-Content .\.vscode\tasks.json -ErrorAction SilentlyContinue
+$SkyrimRoot = "C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition"
+$DataPath = Join-Path $SkyrimRoot "Data"
+$PapyrusCompiler = Join-Path $SkyrimRoot "Papyrus Compiler\PapyrusCompiler.exe"
+$VanillaPapyrusSource = Join-Path $DataPath "Source\Scripts"
+$FlagsFile = Join-Path $VanillaPapyrusSource "TESV_Papyrus_Flags.flg"
 ```
 
-In the earlier implementation the build entry point was `scripts/build.ps1` and the VS Code task ran it. If that path matches your checkout, run:
+Check all dependencies:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
+$SkyrimRoot = "C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition"
+Test-Path $SkyrimRoot
+Test-Path (Join-Path $SkyrimRoot "Papyrus Compiler\PapyrusCompiler.exe")
+Test-Path (Join-Path $SkyrimRoot "Data\Source\Scripts\TESV_Papyrus_Flags.flg")
+Test-Path (Join-Path $SkyrimRoot "Data\Source\Scripts")
 ```
 
-**Expected:** a message equivalent to `=== BUILD SUCCESSFUL ===` and `build/SoundHealing.esp`. Inspect `scripts/build.ps1` first; it may expect a configured game path, local Spriggit CLI, Papyrus compiler, and writable deployment destination. Do not run an unknown script with elevated permissions.
+Each should be `True`. If Skyrim is installed elsewhere, the **current build script provides no path override**: change the local `$SkyrimRoot` or implement a separately reviewed configurable path. Have a suitable Skyrim/Creation Kit Papyrus SDK installed; editor extensions alone do not provide the compiler and vanilla scripts.
 
-After building:
+## 4. Run the exact build task
+
+The committed `.vscode/tasks.json` contains one default task, `Build SoundHealing`. It calls Windows PowerShell with `-NoProfile -ExecutionPolicy Bypass -File` and the workspace-relative `scripts\build.ps1`.
+
+Use **Terminal → Run Build Task** in VS Code, or from the repository root:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
+```
+
+**Warning:** This script recursively deletes the project `build/` directory and copies built files directly into the installed Skyrim `Data` directory, overwriting matching files. Do not run until you have verified paths and backed up anything in those locations that matters.
+
+### What the script actually does
+
+1. Sets `$ErrorActionPreference = "Stop"`, deletes and recreates `build/` and `build/Scripts/`.
+2. Executes:
+
+```powershell
+& $Spriggit deserialize --InputPath $PluginSource --OutputPath $BuiltPlugin --DataFolder $DataPath
+```
+
+Here `$Spriggit` is `tools/Spriggit-0.41.0/Spriggit.CLI.exe`, `$PluginSource` is `plugin-src/SoundHealing`, and `$BuiltPlugin` is `build/SoundHealing.esp`. A nonzero exit code throws `Spriggit build failed.`
+
+3. Enumerates **top-level** `*.psc` files under `src/papyrus/` (no recursive traversal). It compiles each source from that directory using the equivalent invocation:
+
+```powershell
+& $PapyrusCompiler $Script.Name "-i=$VanillaPapyrusSource;$ProjectPapyrusSource" "-o=$BuiltScripts" "-f=$FlagsFile"
+```
+
+The two tracked Papyrus classes are `JP_SH_ResonantMeditationScript` and `JP_SH_SingMagickaDrainScript`. Each compiler invocation is exit-code checked.
+
+4. Copies `build/SoundHealing.esp` into `Data/SoundHealing.esp`; copies `build/Scripts/*` into `Data/Scripts`; and recursively copies `assets/*` into `Data`.
+5. Prints `=== BUILD AND DEPLOY SUCCESSFUL ===` after the copy operations.
+
+**Not performed:** xEdit validation, mod-manager packaging, a release ZIP, runtime tests, or a comparison with `plugin/SoundHealing.esp`. That tracked ESP is a binary snapshot **not read by the build script**. Generated output and tracked snapshot can diverge.
+
+## 5. Confirm the resulting files
+
+Run after building:
 
 ```powershell
 Test-Path .\build\SoundHealing.esp
-Get-ChildItem .\build -Recurse -Filter '*.pex'
+Get-ChildItem .\build\Scripts -Filter '*.pex'
+$Data = "C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition\Data"
+Test-Path (Join-Path $Data "SoundHealing.esp")
+Test-Path (Join-Path $Data "Scripts\JP_SH_ResonantMeditationScript.pex")
+Test-Path (Join-Path $Data "Scripts\JP_SH_SingMagickaDrainScript.pex")
+Test-Path (Join-Path $Data "Meshes\SoundHealing\Weapons\Bowl\JP_SH_BowlPrototype.nif")
+Test-Path (Join-Path $Data "Meshes\SoundHealing\Weapons\Bowl\JP_SH_BowlEquipped.nif")
+Test-Path (Join-Path $Data "Textures\SoundHealing\Weapons\Bowl\JP_SH_BowlBronze_d.dds")
+Test-Path (Join-Path $Data "Textures\SoundHealing\Weapons\Bowl\JP_SH_BowlBronze_n.dds")
+Test-Path (Join-Path $Data "Sound\FX\SoundHealing\ResonantMeditation\JP_SH_ResonantMeditation.wav")
 ```
 
-If the ESP path differs, trust the script's actual output, then update this guide.
+All should be present after full deployment. File presence does **not** establish that meshes, script properties or sounds resolve in game. A Vortex purge/deploy may also affect manually copied files; coordinate mod-manager ownership.
 
-## 7. Game deployment, mesh, texture and audio verification
+## 6. Verify game record wiring with xEdit and Creation Kit
 
-The old workflow copied custom assets to Skyrim's `Data` tree. Illustrative game-relative layout:
+Open the generated/deployed `SoundHealing.esp` with compatible xEdit or Creation Kit:
 
-```text
-Data/
-  Sound/FX/SoundHealing/ResonantMeditation/JP_SH_ResonantMeditation.wav
-  Meshes/SoundHealing/...
-  Textures/SoundHealing/...
-  Scripts/<compiled Papyrus names>.pex
-  SoundHealing.esp
-```
+- **Strike:** `WEAP 003322 → ENCH 003889 → MGEF 003326 → PROJ 00388A`. The current YAML still references a vanilla Forsworn staff model, FireBolt projectile, and legacy fire-damage description.
+- **Sing:** `WEAP 00388B → ENCH 00388C → MGEF 00388D`; script attachment `JP_SH_SingMagickaDrainScript`, model `003890`, sound `00388F`. Serialized WEAP charge capacity is **65535**, enchantment cost **0**.
+- **Meditation:** Lesser Power `0012CE → MGEF 0022F7` running `JP_SH_ResonantMeditationScript` → buff `SPEL 0022F8` with effects `0012C7`, `0012C9`, `0012CB`.
 
-The `JP_SH_ResonantMeditationSound` record refers to the WAV at `data\Sound\FX\SoundHealing\ResonantMeditation\JP_SH_ResonantMeditation.wav`; verify path normalization and case on deployment. A bronze bowl texture was shown working previously. For mesh work, verify **both** the `Model` field in the plugin and the texture paths embedded in the NIF.
+The script's meditation Sound property is assigned **sound marker 001D94**, which references descriptor **001D93**. Both Sing and meditation sound descriptors reference the same WAV, whose serialized source string begins `data\Sound\FX\...`. Inspect in-game sound path resolution rather than treating this as verified playback.
 
-**Known testing wrinkle:** sound/equipment state sometimes worked **after re-equipping** rather than on the initial load/equip. Test both scenarios; do not accept re-equip as a permanent fix.
+Verify NIF embedded DDS paths in NifSkope and compare to files under `assets/Textures/SoundHealing/Weapons/Bowl`.
 
-## 8. Inspect and validate plugin data with xEdit
+## 7. Manual runtime checklist — not yet executed in this audit
 
-In xEdit, load the plugin and its actual masters. Inspect:
+Test fresh load and re-equip; Strike aim, sound, damage, charge and hit; Sing concentration start/end, Magicka drain (script defaults **6 per second**, updates every **0.25 seconds**), insufficient-Magicka cutoff and weapon-switch cleanup. Test meditation on timeout, movement, combat, re-cast, dispel and save/load. Its source contains a `Utility.Wait`-based loop and cleanup at the end of `OnEffectStart`, **not** an `OnEffectFinish` cleanup handler; abnormal termination needs dedicated checks.
 
-- Weapon ↔ enchantment ↔ magic effect ↔ projectile relationships.
-- Referenced sound records, models, and script attachments/properties.
-- Unintended override/conflict records or masters.
-- Record FormKeys after YAML edits and deserialization.
+Do not claim v0.1 gameplay works because deserialization or compilation passed.
 
-YAML **filename** and the serialized `EditorID` are not necessarily identical. Treat actual fields and FormKeys as authoritative.
+## 8. Source control and common pitfalls
 
-## 9. Git / backup checklist
+The actual committed `.gitignore` ignores `build/`, `*.pex`, `scratch/`, `*.tmp`, `*.bak`, `*.blend1`, `*.blend2`, `asset-src/reference/`, `Thumbs.db`, `Desktop.ini`, and `tools/Spriggit-0.41.0/`.
 
-Suggested ignored paths (adapt to the checkout; **avoid ignoring source assets**):
+Commit serialized YAML, PSC, owned original Blender files, NIFs, DDS files, licensed WAVs, and docs. Do not commit the Spriggit binary, extracted Bethesda content or secrets.
 
-```gitignore
-# Generated output
-build/
-scratch/
-*.pex
-*.tmp
-*.bak
-*.blend1
-*.blend2
-Thumbs.db
-Desktop.ini
+The initial git push previously failed on an oversized Spriggit EXE; history containing that blob must be cleaned before it can be accepted even after ignoring the path. The current GitHub repo is now accessible, but do not infer local worktree equality from the remote.
 
-# Third-party tool binary and extracted Bethesda assets
-tools/Spriggit-0.41.0/
-asset-src/reference/
-```
+When troubleshooting, check in this order: required executable `Test-Path` outputs, Spriggit schema version, compiler flags/imports, successful build outputs, deployment paths, xEdit record references, embedded NIF paths, then actual Skyrim behavior.
 
-Before each push:
-
-```powershell
-git status
-git diff --cached --stat
-git add .
-git diff --cached --stat
-git commit -m "Describe the tested change"
-git push
-```
-
-Check that original meshes/Blender files, textures, owned recordings, `.psc`, build scripts, plugin YAML, and docs are actually tracked, and that licensed third-party assets are not accidentally published.
-
-## 10. Frequent issues
-
-| Symptom | First checks |
-|---|---|
-| Creation Kit fails loading masters | Correct CK/game compatibility, INI settings, selected master files |
-| Spriggit CLI not found | Local downloaded version/path; don't assume bundled exe in Git |
-| ESP missing after build | Read script errors; inspect input `plugin-src`; confirm CLI `.NET` requirements |
-| Papyrus compile fails | Import paths, source `.psc`, compiler version, script filename/class name consistency |
-| Texture missing/purple | NIF material texture path, actual `Data/Textures` deploy path, mesh choice |
-| Audio absent on first equip | Equip-state and load-event regression; inspect sound record and WAV path |
-| `git push` fails on 100 MB file | Purge offending object from **history**, not only working tree; keep tool downloads excluded |
-| Python `python` redirects to Microsoft Store | Check Windows App Execution Aliases and Python installation PATH; `py` launcher may be absent |
-
-## 11. New-machine onboarding checklist
-
-1. Clone source; inspect `git status` and README.
-2. Install Skyrim/CK and record exact local versions.
-3. Install VS Code/Papyrus compiler/xEdit; set paths.
-4. Install/download Spriggit **locally**, outside version control.
-5. Run Spriggit help; inspect and execute the build script.
-6. Verify compiled `.pex`, `.esp`, mesh/texture/sound distribution.
-7. Load in xEdit and in game; exercise Strike, Sing and Meditation.
-8. Document any machine-specific fixes without committing private paths or proprietary dependencies.
+For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md). For milestone scope, see [DESIGN_V0_1.md](DESIGN_V0_1.md).

@@ -1,216 +1,249 @@
-# SoundHealing — Technical Architecture and Source Design
+# SoundHealing — Verified Technical Architecture
 
-**Status:** Living architecture guide; **partially verified** from five exported Spriggit YAML records and prior development work. The current Git checkout was not available for a full script/file inventory at the time of writing.  
-**Build artifacts:** `SoundHealing.esp`, `.pex` scripts, assets.  
-**Source of truth:** tracked YAML, `.psc` files, original assets, and build scripts.
+**Repository:** [paulj3/Skyrim-SoundHealing](https://github.com/paulj3/Skyrim-SoundHealing)  
+**Audited baseline:** `main` at `a9ebf583b6c6c56249d15b914b35ed524eee3eb5` (2026-10-11 documentation review)  
+**Evidence level:** Verified by reading tracked source/YAML/build configuration. **No Windows build, xEdit inspection, or in-game test was performed as part of this documentation audit.**  
+**Scope:** Describes the implementation actually present, not the entire [v0.1 design](DESIGN_V0_1.md).
 
-## 1. Architectural overview
+## 1. Architecture at a glance
 
-SoundHealing uses Bethesda's data-driven magic/item records for gameplay wiring, **Papyrus** scripts for runtime state and timed behavior, and **Spriggit** YAML serialization for reviewable, source-controlled ESP edits. The build pipeline turns these sources back into a playable plugin and installed assets.
+SoundHealing is a **Skyrim Special Edition** plugin with four different artifact types:
 
-```text
-       Authoring / source control                         Runtime
-┌───────────────────────────────┐
-│ plugin-src/SoundHealing/ YAML │── Spriggit ──┐
-│ src/papyrus/*.psc             │── compiler ─┤──► SoundHealing.esp + .pex
-│ assets/ (original media)      │── copy ─────┘              │
-└───────────────────────────────┘                            ▼
-                                                  Skyrim Data / game engine
-                                                  WEAP → ENCH → MGEF → PROJ
-                                                     │       │       │
-                                                     │       └─ sound/visuals
-                                                     └───────── equipped mesh
-                                                  Scripts manage time/state
-```
+1. **Game records:** Spriggit YAML files under `plugin-src/SoundHealing/` define Skyrim weapons, staff enchantments, magic effects, projectiles, spells, sounds, and scripts attached to records.
+2. **Behavioral code:** Two `ActiveMagicEffect` subclasses in `src/papyrus/*.psc` implement Magicka drain and meditation state/cleanup.
+3. **Media assets:** `assets/` contains deployed NIFs, DDS textures, and WAV audio. `asset-src/blender/` contains editable Blender authoring projects.
+4. **Build/deployment:** `scripts/build.ps1` deserializes YAML into an ESP, compiles both Papyrus scripts into PEX files, then copies the ESP, PEX files, and assets directly into Skyrim's `Data` folder.
 
-Do not interpret the diagram as indicating that Papyrus classes are compiled *into* the ESP: compiled script binaries are deployed separately and attached/referenced by plugin record data.
+~~~text
+plugin-src/SoundHealing/ (+ RecordData.yaml, spriggit-meta.json)
+                    |
+                    | Spriggit 0.41.0 deserialize
+                    v
+              build/SoundHealing.esp ----------------+
+                                                     |
+src/papyrus/*.psc -> PapyrusCompiler.exe -> build/Scripts/*.pex
+                                                     |
+assets/{Meshes,Textures,Sound}/ ---------------------+
+                                                     |
+                                            scripts/build.ps1
+                                                     |
+                      Skyrim Special Edition/Data/{SoundHealing.esp,
+                               Scripts/, Meshes/, Textures/, Sound/}
+~~~
 
-## 2. Directory ownership (expected layout)
+**Important:** Papyrus PEX files do not get embedded in the ESP by this script. The ESP's magic-effect records refer to scripts by name, and the script binaries are deployed separately.
 
-```text
-SoundHealing/
-├─ plugin-src/
-│  └─ SoundHealing/       # Spriggit YAML for SoundHealing.esp
-├─ src/
-│  └─ papyrus/            # Papyrus source .psc (editable)
-├─ assets/                # Original meshes, textures, audio; inspect actual subfolders
-├─ scripts/
-│  └─ build.ps1           # Earlier observed build entry point
-├─ .vscode/
-│  └─ tasks.json          # Workspace build task(s)
-├─ tools/                 # Local third-party installs; Spriggit binary excluded from Git
-├─ build/                 # Derived ESP/.pex/deployed output; ignored
-├─ docs/                  # Human-facing project documentation
-├─ CLAUDE.md              # Claude-oriented contributor instructions
-└─ AGENTS.md              # Cross-agent contributor instructions
-```
+## 2. Repository map and source-of-truth rules
 
-This is a **map of responsibilities**, not a claim that every path currently exists. If the actual checkout differs, update the table rather than silently moving production files.
-
-## 3. Record categories and responsibilities
-
-| Type | Bethesda / Spriggit role | SoundHealing responsibility |
-|---|---|---|
-| `WEAP` | Equipable weapon/staff record | Bowl item, model, equip type, assigned ObjectEffect |
-| `ENCH` | Enchantment record | Binds effects to staff behavior and its resource properties |
-| `MGEF` | Magic effect | Casting mode, target, visuals/sound, projectile and attached Papyrus logic |
-| `PROJ` | Projectile | Moving emission/impact for Strike; model and physical behavior |
-| `SNDR`/sound record | Sound descriptor | Points to a game-relative WAV/Sound resource |
-| `SPEL` | Spell | Self/targeted effect applications, e.g. meditation buff |
-| `COBJ` | Constructible object | Proposed forge crafting recipe (not yet verified implemented) |
-
-Use the actual type folder/name generated by Spriggit in the checkout; record YAML serialization layout may differ by Spriggit version.
-
-## 4. Known Strike record graph (confirmed from exported YAML)
-
-```text
-WEAP  JP_SH_BowlPrototype             FormKey 003322:SoundHealing.esp
-  └─ ObjectEffect: 003889
-      ENCH  JP_SH_EnchPrototypeStrike FormKey 003889:SoundHealing.esp
-        └─ Effect.BaseEffect: 003326  (magnitude 25; duration 1 in export)
-            MGEF  JP_SH_MGEFPrototypeStrike  FormKey 003326:SoundHealing.esp
-              ├─ CastType: FireAndForget; TargetType: Aimed
-              ├─ Projectile: 00388A
-              │   PROJ  JP_SH_ProjectileStrike  FormKey 00388A:SoundHealing.esp
-              └─ Release Sound: 001D93
-                  SOUND JP_SH_ResonantMeditationSound  FormKey 001D93:SoundHealing.esp
-```
-
-**Record source caveat:** exported filenames include `JP_SH_BowlPrototype2`, `JP_SH_EnchPrototypeResonance`, `JP_SH_MGEFPrototypeResonance`, and `JP_SH_ProjectileResonance`, but their **serialized EditorIDs** are the `...BowlPrototype`, `...Strike` names listed above. Preserve the authoritative `FormKey` and `EditorID` in the file; do not automatically rename records based on filename alone.
-
-**Current prototype debt exposed by the YAML:**
-
-- The weapon export still points to the vanilla `Weapons\Forsworn\ForswornStaff.nif` (likely superseded by later bronze-bowl asset work; verify current checkout).
-- The projectile export still points to `Magic\FireBoltProjectile.nif`.
-- The Strike magic effect's description contains inherited **fire damage** text unrelated to sound.
-- The Strike effect uses the meditation sound descriptor as a release sound; keep or replace intentionally rather than by accident.
-
-Those are not guesses: they are fields in the inspected export, but the local repository may have changed since those files were shared.
-
-## 5. Sing design and runtime logic (from previous implementation work)
-
-### Core pattern
-
-- A separate concentration action uses a magic effect identified in earlier implementation as `JP_SH_MGEFPrototypeSing`.
-- Script: `JP_SH_SingMagickaDrainScript.psc` attached to that magic effect.
-- The caster loses **6 Magicka/sec**, in **0.25 sec** increments while active.
-- When insufficient Magicka remains, the script invokes `InterruptCast()` to terminate the cast.
-- A high prototype enchantment charge capacity (~100,000) was used to avoid built-in charge exhaustion interfering with Sing's manually scripted Magicka budget.
-
-### Expected lifecycle
-
-```text
-Start concentration
-  → effect/script initialized
-  → periodic tick (0.25 sec)
-  → if cast ended or caster invalid: stop scheduling updates
-  → else if Magicka insufficient: InterruptCast() and clean up
-  → else consume Magicka and wait for next tick
-Stop concentration
-  → stop audio, updates and effect state
-```
-
-**Important:** this describes the previous behavior, not a verbatim reconstruction of the current script. Inspect actual `.psc` before changing resource calculations or actor methods. Avoid stacking multiple tick registrations on re-cast or maintaining lingering script activity when the cast ends.
-
-## 6. Resonant Meditation: stateful ActiveMagicEffect
-
-The working prototype included `JP_SH_ResonantMeditationScript` (source usually named `JP_SH_ResonantMeditationScript.psc`) and an `ActiveMagicEffect` implementation tied to a Fire-and-Forget / Self buff spell setup.
-
-Earlier known properties / values:
-
-| Element | Previous implementation behavior |
+| Tracked path | Actual responsibility |
 |---|---|
-| `JP_SH_ResonantMeditationSound` | Sound-related property / record used in meditation |
-| `ResonantMeditationBuff` | Buff-related property |
-| `MovementTolerance` | `10.0` |
+| `plugin-src/SoundHealing/` | Editable serialized plugin records and metadata; primary plugin data source for the build |
+| `src/papyrus/` | The two editable `.psc` script sources |
+| `assets/Meshes/SoundHealing/Weapons/Bowl/` | `JP_SH_BowlPrototype.nif` and `JP_SH_BowlEquipped.nif` |
+| `assets/Textures/SoundHealing/Weapons/Bowl/` | `JP_SH_BowlBronze_d.dds` and `JP_SH_BowlBronze_n.dds` |
+| `assets/Sound/FX/SoundHealing/ResonantMeditation/` | `JP_SH_ResonantMeditation.wav` |
+| `asset-src/blender/` | Three editable `.blend` files, including `JP_SH_BowlEquipped.blend` |
+| `scripts/build.ps1` | Build and direct deployment orchestration |
+| `.vscode/tasks.json` | One default VS Code build task, `Build SoundHealing` |
+| `plugin/SoundHealing.esp` | Tracked binary copy/snapshot; **not an input to `build.ps1`** |
+| `docs/`, `CLAUDE.md`, `AGENTS.md` | Documentation and contributor instructions |
+| `build/` | Generated ESP/PEX output, excluded by `.gitignore` |
+| `tools/Spriggit-0.41.0/` | Expected **local installation**, excluded by `.gitignore` and not distributed in the repo |
+
+A change made only to `plugin/SoundHealing.esp` or `build/SoundHealing.esp` will **not** survive the next YAML-based rebuild. Put durable record changes into `plugin-src/SoundHealing/`; put durable script changes into `src/papyrus/`.
+
+There is currently **no forge crafting recipe** folder/`COBJ` record in the tracked YAML tree. Forge crafting belongs to the design roadmap, not the verified implementation.
+
+## 3. Serialization and record identity
+
+`plugin-src/SoundHealing/RecordData.yaml` declares:
+
+~~~yaml
+SpriggitSource:
+  PackageName: Spriggit.Yaml.Skyrim
+  Version: 0.41
+ModKey: SoundHealing.esp
+GameRelease: SkyrimSE
+ModHeader:
+  Author: DEFAULT
+  MasterReferences:
+  - Master: Skyrim.esm
+    FileSize: 0
+  INTV: 1
+~~~
+
+`spriggit-meta.json` specifies `Spriggit.Yaml.Skyrim` **0.41.0**, `SkyrimSE`, and `SoundHealing.esp`. The serialized header lists `Skyrim.esm` as a master. That does not prove clean xEdit compatibility or that all runtime assets resolve.
+
+**Identifiers are more authoritative than filenames.** For example, the tracked file named `JP_SH_EnchPrototypeResonance - 003889_SoundHealing.esp.yaml` has `EditorID: JP_SH_EnchPrototypeStrike`. Likewise, the file `JP_SH_ProjectileResonance - 00388A_SoundHealing.esp.yaml` has `EditorID: JP_SH_ProjectileStrike`. Never derive an EditorID by stripping a YAML filename.
+
+References use `FormKey` values of the shape `003889:SoundHealing.esp` or `013F42:Skyrim.esm`. Preserve existing FormKeys and master references unless explicitly migrating records.
+
+## 4. Strike: directed, fire-and-forget staff prototype
+
+**Verified serialized graph:**
+
+~~~text
+WEAP  003322  JP_SH_BowlPrototype
+  ObjectEffect -> 003889
+     ENCH  003889  JP_SH_EnchPrototypeStrike
+       CastType FireAndForget; TargetType Aimed
+       Effect.BaseEffect -> 003326 (Magnitude 25; Duration 1)
+          MGEF 003326  JP_SH_MGEFPrototypeStrike
+            CastType FireAndForget; TargetType Aimed
+            ActorValue Health; Projectile -> 00388A
+               PROJ 00388A  JP_SH_ProjectileStrike
+            Release sound -> 001D93
+               SNDR 001D93  JP_SH_ResonantMeditationSound
+~~~
+
+Representative source paths:
+
+- `plugin-src/SoundHealing/Weapons/JP_SH_BowlPrototype - 003322_SoundHealing.esp.yaml`
+- `plugin-src/SoundHealing/ObjectEffects/JP_SH_EnchPrototypeResonance - 003889_SoundHealing.esp.yaml`
+- `plugin-src/SoundHealing/MagicEffects/JP_SH_MGEFPrototypeResonance - 003326_SoundHealing.esp.yaml`
+- `plugin-src/SoundHealing/Projectiles/JP_SH_ProjectileResonance - 00388A_SoundHealing.esp.yaml`
+
+**Current data, not aspirational behavior:** The Strike WEAP record still uses `Weapons\Forsworn\ForswornStaff.nif` (a vanilla model), has `EnchantmentAmount: 1000`, and references the vanilla first-person model `0CC825:Skyrim.esm`. The projectile uses `Magic\FireBoltProjectile.nif`. The effect description still says that a blast of fire does damage and burning targets take extra damage. The effect's release sound points to the meditation descriptor (`001D93`). These are prototype carryovers to address before release, not evidence of custom sonic visuals.
+
+The current record identifies `EquipmentType: 013F43:Skyrim.esm` for Strike; verify intended hand/control behavior in game rather than inferring it from the number.
+
+## 5. Sing: self-targeted concentration staff prototype
+
+**Verified serialized graph:**
+
+~~~text
+WEAP  00388B  JP_SH_BowlSingPrototype
+  Model -> SoundHealing\Weapons\Bowl\JP_SH_BowlPrototype.nif
+  FirstPersonModel -> STAT 003890 JP_SH_BowlFirstPersonModel
+                         -> SoundHealing\Weapons\Bowl\JP_SH_BowlEquipped.nif
+  ObjectEffect -> 00388C
+     ENCH  00388C  JP_SH_EnchPrototypeSing
+       CastType Concentration; TargetType Self; EnchantmentCost 0
+       Effect.BaseEffect -> 00388D (Magnitude 10; Duration 1)
+          MGEF 00388D  JP_SH_MGEFPrototypeSing
+            CastType Concentration; TargetType Self
+            MagicSkill Restoration; ActorValue Health
+            VirtualMachineAdapter.Scripts -> JP_SH_SingMagickaDrainScript
+            ConcentrationCastLoop sound -> 00388F
+               SNDR 00388F  JP_SH_SingLoopSound
+~~~
+
+The Sing WEAP record has `EnchantmentAmount: 65535` (**not** the approximately 100,000 described in earlier working notes) and `EquipmentType: 013F42:Skyrim.esm`. Its enchantment cost is `0`; the Magicka expenditure is scripted rather than ordinary enchantment-charge spending. Its MGEF has a health-restoration description, but the precise magnitude, stacking, and effect of sustained casting require an in-game check.
+
+`JP_SH_ProjectileSing` (`00388E`) exists in `Projectiles/` but is **not referenced by the inspected Sing WEAP → ENCH → MGEF graph**. Do not describe it as an actively used Sing projectile without another reference.
+
+### `JP_SH_SingMagickaDrainScript.psc`
+
+`Scriptname JP_SH_SingMagickaDrainScript extends ActiveMagicEffect`.
+
+| Property or field | Current source value/role |
+|---|---|
+| `MagickaPerSecond` | `6.0` |
+| `TickInterval` | `0.25` seconds |
+| `DebugMode` | `True` |
+| `CasterActor` | Script instance's retained caster reference |
+| `SingActive` | Bool initialized false |
+
+`OnEffectStart` saves `akCaster`, marks the cast active, and calls `RegisterForSingleUpdate(TickInterval)`. Each `OnUpdate` computes `tickCost = MagickaPerSecond * TickInterval` (default **1.5 Magicka per tick**), reads current Magicka, and either calls `CasterActor.InterruptCast()` if `currentMagicka <= tickCost` or uses `DamageActorValue("Magicka", tickCost)` and registers the next update. `OnEffectFinish` clears the flag and calls `UnregisterForUpdate()`. Debug notifications/traces are enabled by default.
+
+This **confirms the code path**, not exact measured in-game drain timing. Validate interruption and update teardown when switching weapons, unequipping, dying, or saving/loading.
+
+## 6. Resonant Meditation: lesser power, controller and buff
+
+**Verified serialized graph:**
+
+~~~text
+SPEL 0012CE JP_SH_ResonantMeditation (LesserPower, FireAndForget)
+  BaseEffect -> MGEF 0022F7 JP_SH_ResonantMeditationController
+      VM script -> JP_SH_ResonantMeditationScript
+      property JP_SH_ResonantMeditationSound -> 001D94
+         SoundMarker 001D94 -> SoundDescriptor 001D93
+      property ResonantMeditationBuff -> SPEL 0022F8
+         JP_SH_ResonantMeditationBuff (FireAndForget)
+         + HealRateMult   MGEF 0012C7 (Magnitude 100, Duration 30)
+         + MagickaRateMult MGEF 0012C9 (Magnitude 100, Duration 30)
+         + StaminaRateMult MGEF 0012CB (Magnitude 100, Duration 30)
+~~~
+
+The outer lesser power's serialized effect duration is **35 seconds**, while the buff's three effect durations and the script's default `MeditationDuration` are **30 seconds**. Do not flatten these into a single record duration; the controller and buff are distinct.
+
+### `JP_SH_ResonantMeditationScript.psc`
+
+`Scriptname JP_SH_ResonantMeditationScript extends ActiveMagicEffect`. Script properties:
+
+| Property | Default in source |
+|---|---|
+| `JP_SH_ResonantMeditationSound` | `Sound` reference, populated in YAML with sound marker `001D94` |
+| `ResonantMeditationBuff` | `Spell` reference to `0022F8` |
+| `MovementTolerance` | `10.0` game-position units **per coordinate axis** |
 | `CheckInterval` | `0.25` seconds |
-| Duration | approximately `30` seconds |
-| Actor values | `HealRateMult`, `MagickaRateMult`, `StaminaRateMult` |
-| Interruption | Movement past tolerance and entering combat |
+| `MeditationDuration` | `30.0` seconds |
+| `DebugMode` | `True` |
 
-### Stateful effect safety
+`OnEffectStart` plays the sound, casts the buff on the target, waits 0.25 seconds, records initial XYZ coordinates and `Utility.GetCurrentRealTime()`, then runs a **blocking `While` loop with `Utility.Wait(CheckInterval)`**. It stops if `IsInCombat()`, if **any** of X/Y/Z has changed more than `MovementTolerance` from its starting value, or if elapsed real time reaches `MeditationDuration`. Successful exit and interrupted exit both call `akTarget.DispelSpell(ResonantMeditationBuff)`, wait 0.25 seconds, log actor values in debug mode, and call `Dispel()` on the controller.
 
-Runtime logic should be structured as an explicit lifecycle:
+This is **not** an `OnUpdate` timer architecture. There is **no `OnEffectFinish` cleanup handler in the current meditation script**: unexpected externally terminated controller effects and save/reload behavior should be tested before assuming every exit is safe.
 
-```text
-OnEffectStart
-  → capture caster/target, starting position, active state
-  → apply effects, sound and timer
-  → schedule periodic position/combat checks
-OnUpdate / equivalent timer
-  → if timed out or interrupted: teardown
-  → else schedule next check
-OnEffectFinish / interruption path
-  → remove/expire buff and stop scheduling checks
-```
+The three regeneration buffs are implemented as normal record effects on actor values, **not** by manually changing actor values in the script. Preserve that ownership distinction when making changes.
 
-The real script may apply the buff by spell rather than direct actor-value modification. Read before editing and avoid double-applying or double-reverting regeneration changes. The essential invariant is that no permanent altered regen stat remains after any exit path. Save/load tests are particularly important.
+## 7. Media references and paths
 
-## 7. Files, IDs and dependency constraints
+| Source file | Deployment-relative path |
+|---|---|
+| `assets/Meshes/SoundHealing/Weapons/Bowl/JP_SH_BowlPrototype.nif` | `Data/Meshes/SoundHealing/Weapons/Bowl/JP_SH_BowlPrototype.nif` |
+| `assets/Meshes/SoundHealing/Weapons/Bowl/JP_SH_BowlEquipped.nif` | `Data/Meshes/SoundHealing/Weapons/Bowl/JP_SH_BowlEquipped.nif` |
+| `assets/Textures/SoundHealing/Weapons/Bowl/JP_SH_BowlBronze_d.dds` | `Data/Textures/SoundHealing/Weapons/Bowl/JP_SH_BowlBronze_d.dds` |
+| `assets/Textures/SoundHealing/Weapons/Bowl/JP_SH_BowlBronze_n.dds` | `Data/Textures/SoundHealing/Weapons/Bowl/JP_SH_BowlBronze_n.dds` |
+| `assets/Sound/FX/SoundHealing/ResonantMeditation/JP_SH_ResonantMeditation.wav` | `Data/Sound/FX/SoundHealing/ResonantMeditation/JP_SH_ResonantMeditation.wav` |
 
-### YAML-first editing
+Both `JP_SH_ResonantMeditationSound` (`001D93`) and `JP_SH_SingLoopSound` (`00388F`) serialize the WAV reference as `data\Sound\FX\SoundHealing\ResonantMeditation\JP_SH_ResonantMeditation.wav`. The asset is actually staged under `assets/Sound/...` and deployed into `Data/Sound/...`. **Check the sound file resolver in game:** it is not established by source inspection whether the leading `data\` in the YAML field is interpreted/normalized correctly.
 
-1. Find the correct record by **EditorID and FormKey**, not filename alone.
-2. Make the smallest YAML change possible; keep serialization structure, referenced masters and YAML encoding intact.
-3. Preserve existing FormKeys (`003322`, `003889`, `003326`, `00388A`, `001D93`) unless deliberately creating/replacing a record.
-4. Re-run Spriggit deserialization; inspect the resulting `SoundHealing.esp` in xEdit/Creation Kit.
-5. Test runtime behavior. Review the exact YAML diff before merging.
+NIF files are present, but this source-level audit did **not** inspect embedded texture paths or render meshes. Test custom Sing first-person and third-person models, texture resolution, and first-equip/re-equip behavior separately.
 
-### Why stable FormKeys matter
+## 8. Build and runtime boundaries
 
-A FormKey refers to a record within a plugin or its master. Changing FormKeys casually can break references from weapons, enchantments, spells, scripts, save games or other records. Names are helpful human labels, but **the serialized reference network is authoritative**.
+The real entry point is `scripts/build.ps1`, invoked by the default `.vscode/tasks.json` task. It does the following **in this order**:
 
-### Script naming
+1. Deletes and recreates the entire repository-local `build/` tree.
+2. Runs the local `tools/Spriggit-0.41.0/Spriggit.CLI.exe deserialize` command on `plugin-src/SoundHealing` and writes `build/SoundHealing.esp`.
+3. Compiles **all direct `*.psc` files** in `src/papyrus/`, producing `build/Scripts/*.pex` using Skyrim's `PapyrusCompiler.exe`.
+4. Copies the built ESP to the hardcoded Skyrim `Data` folder.
+5. Copies compiled PEX files into `Data/Scripts`.
+6. Recursively copies `assets/*` to `Data`.
 
-Papyrus script class names, file names and attached script identifiers must match. Keep `JP_SH_` prefix for project-specific scripts and records. Prefer small effect-specific scripts over a single monolithic script. Propose and document any new script/property names before wiring them into YAML.
+The script checks exit codes after Spriggit and Papyrus invocations but does not invoke xEdit, execute in-game tests, run CI, or package a distributable archive. It does **not** consume `plugin/SoundHealing.esp`. See [TOOLCHAIN_SETUP.md](TOOLCHAIN_SETUP.md) for exact paths and commands.
 
-### Owned audio and asset paths
+## 9. Architecture risks and unfinished v0.1 work
 
-The inspected sound record `JP_SH_ResonantMeditationSound` references:
+**Verified from source:**
 
-```text
-data\Sound\FX\SoundHealing\ResonantMeditation\JP_SH_ResonantMeditation.wav
-```
+- Strike and Sing are **two separate WEAP records**, not two independent controls bound to one instrument.
+- Both modes currently share the meditation WAV via different descriptors.
+- Strike retains a Forsworn staff model, vanilla first-person model, FireBolt projectile model, and inherited fire-description text.
+- `JP_SH_ProjectileSing` exists without a verified active reference.
+- No tracked crafting/constructible-object `COBJ` records exist.
+- The tree contains `DUPLICATE001`-named inherited/prototype records; assess before release, without automatically deleting or re-keying them.
+- `plugin/SoundHealing.esp` is tracked even though YAML is the build input; clarify whether it is a snapshot or remove it through an intentional change.
+- Meditation cleanup occurs at the end of `OnEffectStart`; extraordinary termination and save/load need special attention.
+- Build and deployment depend on local hardcoded paths and writable game files.
 
-The Data-relative deployment path is usually represented without a second `data` root in an installation package:
+**Requires runtime or environment verification:**
 
-```text
-Sound/FX/SoundHealing/ResonantMeditation/JP_SH_ResonantMeditation.wav
-```
+- Actual Skyrim executable, Creation Kit and compiler compatibility versions.
+- Papyrus compilation and Spriggit deserialization on a fresh machine.
+- ESP master references and record validation in xEdit.
+- NIF texture links, sound path resolution, audio on first equip, and re-equip behavior.
+- Strike impacts/damage/charge and Sing healing, Magicka drain, concentration stop behavior.
+- Meditation buff restoration on timeout, combat, movement, external dispel, death and reload.
+- How v0.1 should map the proposed Strike/Sing controls to vanilla Skyrim's equip/input model.
 
-Check the actual Spriggit and game path semantics during deployment. Never assume the `SoundFiles` field path is identical to the on-disk source directory.
+## 10. Editing and validation protocol
 
-## 8. Architecture boundaries: where logic belongs
+1. Identify the source record by **FormKey + EditorID**, then follow every referenced FormKey before editing.
+2. Change authoritative `plugin-src` YAML, `src/papyrus` PSC, or `assets`/`asset-src` source; **never rely on editing generated `build/` outputs**.
+3. Preserve FormKeys, VM script names, VM object-property assignments, and the `SoundHealing.esp` ModKey.
+4. Run the real build task and inspect the generated ESP/PEX files.
+5. Inspect changed records/references in xEdit or Creation Kit; perform focused in-game tests.
+6. Document unverified outcomes explicitly. Update this guide if record graphs, script defaults, file names or paths change.
 
-| Concern | Preferred layer | Avoid |
-|---|---|---|
-| Stats, magnitude, targets, charge, projectiles, generic effects | YAML game records | Hard-coding everything in Papyrus |
-| Continuous Magicka drain, movement thresholds, state cleanup | Papyrus `.psc` | Trying to force all state via data-only records |
-| Audio waveform/loops and models/textures | Authored asset files + record references | Inlining unsupported asset paths or deleting source files |
-| Deserialization, compilation, packaging | PowerShell + VS Code tasks | Committing build binaries as source |
-| Test and record validation | xEdit/Creation Kit/in-game | Inferring correctness merely from YAML parse success |
-
-## 9. Safe workflow for adding a bowl variant
-
-1. Write the game behavior and variant purpose in `docs/DESIGN_V0_1.md`.
-2. Copy **source assets** under the project's designated asset tree; validate model and NIF texture paths.
-3. Duplicate/create the necessary WEAP record with a fresh, intentional FormKey and `JP_SH_` EditorID.
-4. Reuse existing enchantment/magic effects where possible; create new records only when mechanics actually differ.
-5. Add a `COBJ` forge recipe when crafting is in scope; check ownership/requirements/ingredients.
-6. Deserialize and compile, inspect plugin in xEdit, equip in game, exercise relevant controls and costs.
-7. Update architecture docs and test evidence; commit only source.
-
-## 10. Testing and change discipline
-
-**Minimum smoke test:** building, plugin load, first equip/re-equip, Strike release impact/audio, Sing sustain/cost/interruption, Meditation movement/combat/timeout/regen cleanup, save/load. For any modified record, use xEdit to validate it and its direct dependents.
-
-**Regression risk flags:** changing a FormKey, a master dependency, a Papyrus script attachment/property, active effect duration, resource-cost path, texture path in a NIF, or an effect's casting mode. Treat each as requiring explicit focused regression tests.
-
-## 11. Open verification tasks
-
-- Confirm exact current repository tree and build script arguments.
-- Compare the five exported prototype YAMLs with current files; replace stale example fields where necessary.
-- Verify original `JP_SH_ResonantMeditationScript` and `JP_SH_SingMagickaDrainScript` implementation details from actual `.psc`.
-- Inventory all `SPEL`, `MGEF`, `COBJ`, and model references, including crafting recipes not visible in the exported sample.
-- Record supported Skyrim/Creation Kit version combinations and dependency/master list.
-- Decide authoritative distinction between Sing and Strike equip controls and resource model.
+The linked documents `AGENTS.md` and `CLAUDE.md` are contributor policies; source code and serialized records remain authoritative when an older prose description disagrees with them.
