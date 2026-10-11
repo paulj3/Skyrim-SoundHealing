@@ -105,7 +105,7 @@ Representative source paths:
 
 **Current data, not aspirational behavior:** The Strike WEAP record still uses `Weapons\Forsworn\ForswornStaff.nif` (a vanilla model), has `EnchantmentAmount: 1000`, and references the vanilla first-person model `0CC825:Skyrim.esm`. The projectile uses `Magic\FireBoltProjectile.nif`. The effect description still says that a blast of fire does damage and burning targets take extra damage. The effect's release sound points to the meditation descriptor (`001D93`). These are prototype carryovers to address before release, not evidence of custom sonic visuals.
 
-The current record identifies `EquipmentType: 013F43:Skyrim.esm` for Strike; verify intended hand/control behavior in game rather than inferring it from the number.
+On `feature/dual-hand-singing-bowl`, the Strike placeholder WEAP now has `EquipmentType: 013F42:Skyrim.esm` (RightHand). Its Forsworn staff/vanilla first-person model remain unchanged until the mallet prototype is ready. Confirm actual hand placement in game.
 
 ## 5. Sing: self-targeted concentration staff prototype
 
@@ -128,7 +128,7 @@ WEAP  00388B  JP_SH_BowlSingPrototype
                SNDR 00388F  JP_SH_SingLoopSound
 ~~~
 
-The Sing WEAP record has `EnchantmentAmount: 65535` (**not** the approximately 100,000 described in earlier working notes) and `EquipmentType: 013F42:Skyrim.esm`. Its enchantment cost is `0`; the Magicka expenditure is scripted rather than ordinary enchantment-charge spending. Its MGEF has a health-restoration description, but the precise magnitude, stacking, and effect of sustained casting require an in-game check.
+The Sing WEAP record has `EnchantmentAmount: 65535` (**not** the approximately 100,000 described in earlier working notes) and `EquipmentType: 013F43:Skyrim.esm` (LeftHand) on the dual-hand feature branch. Its enchantment cost is `0`; the Magicka expenditure is scripted rather than ordinary enchantment-charge spending. Its MGEF has a health-restoration description, but the precise magnitude, stacking, and effect of sustained casting require an in-game check.
 
 `JP_SH_ProjectileSing` (`00388E`) exists in `Projectiles/` but is **not referenced by the inspected Sing WEAP → ENCH → MGEF graph**. Do not describe it as an actively used Sing projectile without another reference.
 
@@ -247,3 +247,17 @@ The script checks exit codes after Spriggit and Papyrus invocations but does not
 6. Document unverified outcomes explicitly. Update this guide if record graphs, script defaults, file names or paths change.
 
 The linked documents `AGENTS.md` and `CLAUDE.md` are contributor policies; source code and serialized records remain authoritative when an older prose description disagrees with them.
+
+
+## Dual-hand equipment experiment — feature branch
+
+The first integration test makes only two existing WEAP equipment-type changes:
+
+| Existing record | Proposed held item | EquipmentType | Retained behavior |
+|---|---|---|---|
+| `JP_SH_BowlSingPrototype` (00388B) | Bowl in **left** hand | `013F43:Skyrim.esm` | Concentration, self-targeted Sing, 6 Magicka/sec script |
+| `JP_SH_BowlPrototype` (003322) | Striker placeholder in **right** hand | `013F42:Skyrim.esm` | Fire-and-forget Strike, staff-charge-based |
+
+The goal is **one perceived instrument played with two held objects**, not a merged Skyrim WEAP record. No enchantment, magic effect, projectile, VM attachment, model or script was changed in this first step. The Strike model is still a Forsworn staff and the Sing model may require a left-hand orientation adjustment.
+
+**Testing before a mallet asset is authored:** build with `scripts/build.ps1`, then explicitly deploy with `-Deploy`. In a test save, equip both items in their intended hands through the inventory menu; verify that neither unequips the other, their expected casting actions work independently, and the bowl mesh is visible both in first and third person. Test first equip, re-equip, save/load, and whether casting one hand interrupts or blocks the other. EquipmentType record values are not sufficient proof that Skyrim will enforce hand placement or render models correctly. Avoid treating the dual-hand design as implemented until these in-game tests pass.
