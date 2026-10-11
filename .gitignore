@@ -19,3 +19,5 @@ asset-src/reference/
 # Windows
 Thumbs.db
 Desktop.ini
+# Third-party development tools
+tools/Spriggit-0.41.0/
